@@ -13,6 +13,10 @@ let studyData = JSON.parse(localStorage.getItem("zakkerStudyData")) || {
   daily: {}
 };
 
+// نظام الحسابات المحلي
+let currentUser = JSON.parse(localStorage.getItem("zakkerCurrentUser")) || null;
+let users = JSON.parse(localStorage.getItem("zakkerUsers")) || {};
+
 let currentFilter = "all";
 let currentCardIndex = 0;
 let isCardFlipped = false;
@@ -93,7 +97,8 @@ function showPage(pageId) {
     flashcards: ["كروت المراجعة 🧠", "اختبر ذاكرتك وراجع المعلومات المهمة."],
     quiz: ["اختبر نفسك ✍️", "راجع معلوماتك من خلال أسئلة قصيرة."],
     statistics: ["إحصائياتك 📊", "شوف تطورك وإنجازاتك في المذاكرة."],
-    settings: ["الإعدادات ⚙️", "خصص تجربتك في «ذاكر صح»."]
+    ai: ["المساعد الذكي 🤖", "لخّص دروسك وأنشئ أسئلة تلقائيًا."],
+    settings: ["الإعدادات ⚙️", "خصص تجربتك في Let Us Study."]
   };
 
   if (titles[pageId]) {
@@ -807,6 +812,7 @@ function updateAllUI() {
   updateQuizUI();
   updateStatistics();
   loadDarkMode();
+  updateAccountUI();
 }
 
 // =========================================
@@ -831,3 +837,288 @@ function showNotification(message) {
     toast.classList.remove("show");
   }, 3000);
 }
+
+// =========================================
+// نظام الحسابات المحلي
+// =========================================
+
+function openAccountModal() {
+  updateAccountUI();
+  openModal("accountModal");
+}
+
+function updateAccountUI() {
+  const loggedOut = document.getElementById("accountLoggedOut");
+  const loggedIn = document.getElementById("accountLoggedIn");
+  const display = document.getElementById("currentUserDisplay");
+
+  if (currentUser) {
+    loggedOut.classList.add("hidden");
+    loggedIn.classList.remove("hidden");
+    document.getElementById("loggedInUsername").textContent = currentUser;
+    if (display) display.textContent = currentUser;
+  } else {
+    loggedOut.classList.remove("hidden");
+    loggedIn.classList.add("hidden");
+    if (display) display.textContent = "غير مسجل";
+  }
+}
+
+function registerOrLogin() {
+  const username = document.getElementById("usernameInput").value.trim();
+  const password = document.getElementById("passwordInput").value.trim();
+
+  if (!username || !password) {
+    showNotification("من فضلك أدخل اسم المستخدم وكلمة المرور ⚠️");
+    return;
+  }
+
+  if (users[username]) {
+    // Login
+    if (users[username].password !== password) {
+      showNotification("كلمة المرور غير صحيحة ⚠️");
+      return;
+    }
+    // Save current data to previous user if any
+    if (currentUser) {
+      saveUserData(currentUser);
+    }
+    currentUser = username;
+    loadUserData(username);
+    showNotification(`مرحبًا بعودتك، ${username}! 👋`);
+  } else {
+    // Register
+    if (currentUser) {
+      saveUserData(currentUser);
+    }
+    users[username] = { password: password, data: null };
+    currentUser = username;
+    // Keep current data as the new user's data
+    saveUserData(username);
+    showNotification(`تم إنشاء الحساب: ${username} 🎉`);
+  }
+
+  localStorage.setItem("zakkerCurrentUser", JSON.stringify(currentUser));
+  localStorage.setItem("zakkerUsers", JSON.stringify(users));
+  closeModal("accountModal");
+  updateAccountUI();
+  updateAllUI();
+}
+
+function logout() {
+  if (currentUser) {
+    saveUserData(currentUser);
+  }
+  currentUser = null;
+  localStorage.removeItem("zakkerCurrentUser");
+  // Reset to empty or keep last? For simplicity reset
+  tasks = [];
+  flashcards = [];
+  quizQuestions = [];
+  studyData = { totalMinutes: 0, sessions: 0, daily: {} };
+  saveData();
+  updateAccountUI();
+  updateAllUI();
+  showNotification("تم تسجيل الخروج 👋");
+  closeModal("accountModal");
+}
+
+function saveUserData(username) {
+  if (!username || !users[username]) return;
+  users[username].data = {
+    tasks: tasks,
+    flashcards: flashcards,
+    quizQuestions: quizQuestions,
+    studyData: studyData
+  };
+  localStorage.setItem("zakkerUsers", JSON.stringify(users));
+}
+
+function loadUserData(username) {
+  if (!users[username] || !users[username].data) {
+    tasks = [];
+    flashcards = [];
+    quizQuestions = [];
+    studyData = { totalMinutes: 0, sessions: 0, daily: {} };
+  } else {
+    const data = users[username].data;
+    tasks = data.tasks || [];
+    flashcards = data.flashcards || [];
+    quizQuestions = data.quizQuestions || [];
+    studyData = data.studyData || { totalMinutes: 0, sessions: 0, daily: {} };
+  }
+  saveData(); // also save to the global keys for compatibility
+}
+
+// Override saveData to also save to current user
+const originalSaveData = saveData;
+saveData = function() {
+  originalSaveData();
+  if (currentUser) {
+    saveUserData(currentUser);
+  }
+};
+
+// =========================================
+// تصدير واستيراد البيانات (للمزامنة بين الأجهزة)
+// =========================================
+
+function exportData() {
+  const exportObj = {
+    version: "1.0",
+    exportedAt: new Date().toISOString(),
+    currentUser: currentUser,
+    tasks: tasks,
+    flashcards: flashcards,
+    quizQuestions: quizQuestions,
+    studyData: studyData,
+    users: users // optional, for full backup
+  };
+
+  const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `let-us-study-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showNotification("تم تصدير البيانات بنجاح 📤");
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.tasks) tasks = data.tasks;
+      if (data.flashcards) flashcards = data.flashcards;
+      if (data.quizQuestions) quizQuestions = data.quizQuestions;
+      if (data.studyData) studyData = data.studyData;
+      if (data.users) users = data.users;
+      if (data.currentUser) {
+        currentUser = data.currentUser;
+        localStorage.setItem("zakkerCurrentUser", JSON.stringify(currentUser));
+      }
+      saveData();
+      updateAllUI();
+      updateAccountUI();
+      showNotification("تم استيراد البيانات بنجاح 📥");
+    } catch (err) {
+      showNotification("ملف غير صالح ⚠️");
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = ""; // reset
+}
+
+// =========================================
+// الذكاء الاصطناعي
+// =========================================
+
+function generateSummary() {
+  const text = document.getElementById("aiLessonText").value.trim();
+  if (!text) {
+    showNotification("من فضلك الصق نص الدرس أولاً ⚠️");
+    return;
+  }
+
+  const output = document.getElementById("aiOutput");
+  const title = document.getElementById("aiOutputTitle");
+  const content = document.getElementById("aiOutputContent");
+
+  title.textContent = "📝 الملخص";
+  content.textContent = "جاري التلخيص...";
+  output.style.display = "block";
+
+  // تلخيص محلي: استخراج أهم الجمل
+  const sentences = text
+    .replace(/\n+/g, ". ")
+    .split(/[.!؟]\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 25);
+
+  const unique = [...new Set(sentences)];
+  const top = unique.slice(0, 7);
+
+  let summary = top.length
+    ? top.map((s, i) => `${i + 1}. ${s}`).join("\n\n")
+    : "النص قصير جدًا لإنشاء ملخص مفصل.";
+
+  content.textContent = summary;
+}
+
+function generateQuestions() {
+  const text = document.getElementById("aiLessonText").value.trim();
+  if (!text) {
+    showNotification("من فضلك الصق نص الدرس أولاً ⚠️");
+    return;
+  }
+
+  const output = document.getElementById("aiOutput");
+  const title = document.getElementById("aiOutputTitle");
+  const content = document.getElementById("aiOutputContent");
+
+  title.textContent = "❓ أسئلة المراجعة";
+  content.textContent = "جاري إنشاء الأسئلة...";
+  output.style.display = "block";
+
+  // استخراج كلمات ومفاهيم مهمة
+  const words = text
+    .replace(/[^\u0600-\u06FFa-zA-Z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(w => w.length > 4);
+
+  const freq = {};
+  words.forEach(w => freq[w] = (freq[w] || 0) + 1);
+  const keywords = Object.entries(freq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([w]) => w);
+
+  const sentences = text.split(/[.!؟]\s+/).filter(s => s.length > 30);
+
+  let questions = "";
+
+  // أسئلة إكمال
+  sentences.slice(0, 3).forEach((s, i) => {
+    const parts = s.split(" ");
+    if (parts.length > 6) {
+      const blankIndex = Math.floor(parts.length / 2);
+      const answer = parts[blankIndex];
+      parts[blankIndex] = "______";
+      questions += `${i + 1}. أكمل: ${parts.join(" ")}\nالإجابة: ${answer}\n\n`;
+    }
+  });
+
+  // أسئلة صح أو خطأ
+  sentences.slice(3, 6).forEach((s, i) => {
+    questions += `${questions.split("\n\n").length}. صح أم خطأ: ${s.trim()}\n(راجع النص للتأكد)\n\n`;
+  });
+
+  // أسئلة عن الكلمات المفتاحية
+  keywords.slice(0, 3).forEach((kw, i) => {
+    questions += `${questions.split("\n\n").length}. ما المقصود بـ "${kw}" حسب النص؟\n\n`;
+  });
+
+  content.textContent = questions || "لم أتمكن من استخراج أسئلة. جرب نص أطول.";
+}
+
+function copyAIOutput() {
+  const content = document.getElementById("aiOutputContent").textContent;
+  navigator.clipboard.writeText(content).then(() => {
+    showNotification("تم نسخ النتيجة 📋");
+  }).catch(() => {
+    showNotification("فشل النسخ");
+  });
+}
+
+// Load on start
+document.addEventListener("DOMContentLoaded", function () {
+  updateAccountUI();
+  if (currentUser) {
+    loadUserData(currentUser);
+  }
+});

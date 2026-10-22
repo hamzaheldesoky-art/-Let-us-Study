@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <link rel="icon" type="image/png" href="favicon.png">
   <meta charset="UTF-8">
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -260,6 +259,14 @@
         >
           <span>📊</span>
           الإحصائيات
+        </button>
+
+        <button
+          class="nav-item"
+          data-page="ai"
+        >
+          <span>🤖</span>
+          المساعد الذكي
         </button>
 
 
@@ -1595,6 +1602,94 @@
         </section>
 
 
+        <!-- صفحة المساعد الذكي -->
+        <section
+          id="ai"
+          class="page"
+        >
+
+          <div class="page-intro">
+
+            <div>
+
+              <h2>
+                المساعد الذكي 🤖
+              </h2>
+
+              <p>
+                استخدم الذكاء الاصطناعي لتلخيص الدروس وإنشاء أسئلة تلقائيًا.
+              </p>
+
+            </div>
+
+          </div>
+
+          <div class="dashboard-card">
+
+            <div class="form-group">
+
+              <label>
+                الصق نص الدرس هنا
+              </label>
+
+              <textarea
+                id="aiLessonText"
+                placeholder="انسخ والصق محتوى الدرس أو الملاحظات التي تريد تلخيصها أو إنشاء أسئلة منها..."
+                style="min-height: 180px;"
+              ></textarea>
+
+            </div>
+
+            <div class="form-row" style="margin-bottom: 20px;">
+
+              <button
+                class="primary-btn"
+                onclick="generateSummary()"
+              >
+                📝 تلخيص الدرس
+              </button>
+
+              <button
+                class="primary-btn"
+                onclick="generateQuestions()"
+              >
+                ❓ إنشاء أسئلة
+              </button>
+
+            </div>
+
+            <div id="aiOutput" class="ai-output" style="display: none;">
+
+              <h3 id="aiOutputTitle"></h3>
+
+              <div id="aiOutputContent" style="white-space: pre-wrap; line-height: 1.8; margin-top: 15px;"></div>
+
+              <button
+                class="secondary-btn"
+                style="margin-top: 15px;"
+                onclick="copyAIOutput()"
+              >
+                نسخ النتيجة
+              </button>
+
+            </div>
+
+          </div>
+
+          <div class="dashboard-card" style="margin-top: 20px;">
+
+            <h3>💡 نصيحة</h3>
+
+            <p style="color: var(--muted); font-size: 13px; margin-top: 10px;">
+              الصق نص الدرس أو الملاحظات، ثم اضغط على التلخيص أو إنشاء الأسئلة. 
+              كل شيء يعمل محليًا على جهازك بدون الحاجة لأي مفتاح أو إنترنت.
+            </p>
+
+          </div>
+
+        </section>
+
+
         <!-- الإعدادات -->
         <section
           id="settings"
@@ -1691,6 +1786,91 @@
                 <span class="slider"></span>
 
               </label>
+
+            </div>
+
+
+            <div class="setting-row">
+
+              <div>
+
+                <span class="setting-icon">
+                  👤
+                </span>
+
+                <div>
+
+                  <strong>
+                    الحساب المحلي
+                  </strong>
+
+                  <p id="currentUserDisplay">
+                    غير مسجل
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              <button
+                class="secondary-btn"
+                onclick="openAccountModal()"
+              >
+                إدارة الحساب
+              </button>
+
+            </div>
+
+
+            <div class="setting-row">
+
+              <div>
+
+                <span class="setting-icon">
+                  📤
+                </span>
+
+                <div>
+
+                  <strong>
+                    تصدير / استيراد البيانات
+                  </strong>
+
+                  <p>
+                    لنقل البيانات بين الأجهزة (مزامنة يدوية)
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              <div style="display: flex; gap: 8px;">
+
+                <button
+                  class="secondary-btn"
+                  onclick="exportData()"
+                >
+                  تصدير
+                </button>
+
+                <button
+                  class="secondary-btn"
+                  onclick="document.getElementById('importFile').click()"
+                >
+                  استيراد
+                </button>
+
+                <input
+                  type="file"
+                  id="importFile"
+                  accept=".json"
+                  style="display: none;"
+                  onchange="importData(event)"
+                >
+
+              </div>
 
             </div>
 
@@ -2065,6 +2245,91 @@
       >
         حفظ السؤال
       </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- Modal الحساب -->
+  <div
+    class="modal-overlay"
+    id="accountModal"
+  >
+
+    <div class="modal">
+
+      <div class="modal-header">
+
+        <h3>
+          👤 إدارة الحساب المحلي
+        </h3>
+
+        <button
+          onclick="closeModal('accountModal')"
+        >
+          ×
+        </button>
+
+      </div>
+
+      <div id="accountLoggedOut">
+
+        <div class="form-group">
+
+          <label>
+            اسم المستخدم
+          </label>
+
+          <input
+            type="text"
+            id="usernameInput"
+            placeholder="اختر اسم مستخدم"
+          >
+
+        </div>
+
+        <div class="form-group">
+
+          <label>
+            كلمة المرور
+          </label>
+
+          <input
+            type="password"
+            id="passwordInput"
+            placeholder="كلمة مرور بسيطة"
+          >
+
+        </div>
+
+        <button
+          class="primary-btn full-btn"
+          onclick="registerOrLogin()"
+        >
+          تسجيل الدخول / إنشاء حساب
+        </button>
+
+        <p style="font-size: 11px; color: var(--muted); margin-top: 15px; text-align: center;">
+          الحسابات محلية على هذا الجهاز. استخدم تصدير/استيراد لنقل البيانات بين الأجهزة.
+        </p>
+
+      </div>
+
+      <div id="accountLoggedIn" class="hidden">
+
+        <p style="text-align: center; margin-bottom: 20px;">
+          مرحبًا، <strong id="loggedInUsername"></strong>!
+        </p>
+
+        <button
+          class="danger-btn full-btn"
+          onclick="logout()"
+        >
+          تسجيل الخروج
+        </button>
+
+      </div>
 
     </div>
 
