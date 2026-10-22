@@ -98,6 +98,8 @@ function showPage(pageId) {
     quiz: ["اختبر نفسك ✍️", "راجع معلوماتك من خلال أسئلة قصيرة."],
     statistics: ["إحصائياتك 📊", "شوف تطورك وإنجازاتك في المذاكرة."],
     ai: ["المساعد الذكي 🤖", "لخّص دروسك وأنشئ أسئلة تلقائيًا."],
+    schedule: ["الجدول الأسبوعي 📅", "خطط لمذاكرتك خلال الأسبوع."],
+    plan: ["مولد خطة المذاكرة 📋", "أنشئ خطة توزيع للمواد والامتحانات."],
     settings: ["الإعدادات ⚙️", "خصص تجربتك في Let Us Study."]
   };
 
@@ -1121,4 +1123,176 @@ document.addEventListener("DOMContentLoaded", function () {
   if (currentUser) {
     loadUserData(currentUser);
   }
+  initExtraFeatures();
 });
+
+// =========================================
+// المميزات الإضافية
+// =========================================
+
+let scheduleData = JSON.parse(localStorage.getItem("zakkerSchedule")) || {};
+let notes = localStorage.getItem("zakkerNotes") || "";
+let themeColor = localStorage.getItem("zakkerTheme") || "purple";
+let todaySessions = parseInt(localStorage.getItem("zakkerTodaySessions") || "0");
+
+const days = ["السبت", "الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
+const motivationalQuotes = [
+  "كل خطوة صغيرة تقربك من هدفك!",
+  "النجاح مش إنك تذاكر طول الوقت، النجاح إنك تذاكر بتركيز.",
+  "ابدأ دلوقتي، حتى لو بدقيقة واحدة.",
+  "أنت أقرب للنجاح مما تتخيل.",
+  "الاستمرار أهم من الكمال.",
+  "ذاكر بذكاء مش بجهد بس.",
+  "كل يوم فرصة جديدة تتقدم فيها."
+];
+
+function initExtraFeatures() {
+  renderWeeklySchedule();
+  loadTheme();
+  updateDailyQuote();
+  loadNotes();
+  updateSessionStats();
+}
+
+function renderWeeklySchedule() {
+  const container = document.getElementById("weeklySchedule");
+  if (!container) return;
+  container.innerHTML = days.map(day => `
+    <div class="schedule-day">
+      <strong>${day}</strong>
+      <textarea class="schedule-input" data-day="${day}" placeholder="اكتب مهام أو مواد اليوم...">${scheduleData[day] || ""}</textarea>
+    </div>
+  `).join("");
+}
+
+function saveSchedule() {
+  document.querySelectorAll(".schedule-input").forEach(input => {
+    scheduleData[input.dataset.day] = input.value.trim();
+  });
+  localStorage.setItem("zakkerSchedule", JSON.stringify(scheduleData));
+  showNotification("تم حفظ الجدول الأسبوعي 📅");
+}
+
+function generateStudyPlan() {
+  const input = document.getElementById("planInput").value.trim();
+  const output = document.getElementById("planOutput");
+  if (!input) {
+    showNotification("اكتب المواد أولاً ⚠️");
+    return;
+  }
+  const lines = input.split("\n").filter(l => l.trim());
+  let plan = "<h3>خطة المذاكرة المقترحة</h3><ul>";
+  lines.forEach((line, i) => {
+    const day = days[i % 7];
+    plan += `<li><strong>${day}:</strong> ${escapeHTML(line)}</li>`;
+  });
+  plan += "</ul><p style='margin-top:15px;color:var(--muted);'>وزّع المذاكرة على الأيام دي وراجع قبل الامتحان بيوم.</p>";
+  output.innerHTML = plan;
+  output.style.display = "block";
+}
+
+// ثيمات الألوان
+function setTheme(color) {
+  themeColor = color;
+  localStorage.setItem("zakkerTheme", color);
+  document.body.classList.remove("theme-purple", "theme-blue", "theme-green", "theme-orange");
+  document.body.classList.add("theme-" + color);
+  showNotification("تم تغيير اللون 🎨");
+}
+
+function loadTheme() {
+  document.body.classList.add("theme-" + themeColor);
+}
+
+// ملاحظات سريعة
+function loadNotes() {
+  const notesEl = document.getElementById("quickNotes");
+  if (notesEl) notesEl.value = notes;
+}
+
+function saveNotes() {
+  notes = document.getElementById("quickNotes").value;
+  localStorage.setItem("zakkerNotes", notes);
+}
+
+// تذكير يومي
+function updateDailyQuote() {
+  const quoteEl = document.querySelector(".quote-card p");
+  if (quoteEl) {
+    const dayIndex = new Date().getDay();
+    quoteEl.textContent = motivationalQuotes[dayIndex % motivationalQuotes.length];
+  }
+}
+
+// مؤقت متقدم + صوت
+function playNotificationSound() {
+  try {
+    const audio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAAAA==");
+    audio.play().catch(() => {});
+  } catch (e) {}
+}
+
+// وضع التركيز الكامل
+function toggleFullscreenTimer() {
+  const timerCard = document.querySelector(".focus-timer-card");
+  if (!document.fullscreenElement) {
+    timerCard.requestFullscreen?.() || timerCard.webkitRequestFullscreen?.();
+    showNotification("وضع التركيز الكامل 🎯");
+  } else {
+    document.exitFullscreen?.();
+  }
+}
+
+// تصدير المهام
+function exportTasksPDF() {
+  const tasksText = tasks.map(t => `${t.completed ? "✅" : "⬜"} ${t.name} - ${t.subject}`).join("\n");
+  const blob = new Blob([tasksText], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "مهامي.txt";
+  a.click();
+  showNotification("تم تصدير المهام 📄");
+}
+
+// تحديث إحصائيات الجلسات
+function updateSessionStats() {
+  const el = document.getElementById("todaySessionsCount");
+  if (el) el.textContent = todaySessions;
+}
+
+// عند انتهاء جلسة تركيز
+const originalToggleTimer = toggleTimer;
+// سيتم استدعاؤها من الكود الأصلي عند الانتهاء
+
+function onFocusSessionComplete() {
+  todaySessions++;
+  localStorage.setItem("zakkerTodaySessions", todaySessions);
+  playNotificationSound();
+  updateSessionStats();
+  updateAchievements();
+}
+
+// كروت أفضل - صعوبة
+function updateFlashcardDifficulty(id, difficulty) {
+  const card = flashcards.find(c => c.id === id);
+  if (card) {
+    card.difficulty = difficulty;
+    card.reviewCount = (card.reviewCount || 0) + 1;
+    saveData();
+    showNotification("تم تحديث مستوى الكارت");
+  }
+}
+
+// شارات إضافية
+function updateAchievements() {
+  const completed = tasks.filter(t => t.completed).length;
+  document.getElementById("achievement1")?.classList.toggle("unlocked", tasks.length >= 1);
+  document.getElementById("achievement2")?.classList.toggle("unlocked", completed >= 5);
+  document.getElementById("achievement3")?.classList.toggle("unlocked", flashcards.length >= 5);
+  document.getElementById("achievement4")?.classList.toggle("unlocked", studyData.sessions >= 1);
+  // شارات جديدة
+  document.getElementById("achievement5")?.classList.toggle("unlocked", todaySessions >= 4);
+  document.getElementById("achievement6")?.classList.toggle("unlocked", flashcards.length >= 10);
+  document.getElementById("achievement7")?.classList.toggle("unlocked", studyData.sessions >= 7);
+}

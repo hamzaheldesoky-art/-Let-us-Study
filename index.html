@@ -274,6 +274,22 @@
           المساعد الذكي
         </button>
 
+        <button
+          class="nav-item"
+          data-page="schedule"
+        >
+          <span>📅</span>
+          الجدول الأسبوعي
+        </button>
+
+        <button
+          class="nav-item"
+          data-page="plan"
+        >
+          <span>📋</span>
+          مولد الخطة
+        </button>
+
 
         <p class="menu-label">
           أخرى
@@ -650,6 +666,17 @@
 
           </div>
 
+
+          <div class="dashboard-card" style="margin-top: 22px;">
+            <div class="card-header">
+              <div>
+                <h3>📝 ملاحظات سريعة</h3>
+                <p>اكتب ملاحظاتك أثناء المذاكرة</p>
+              </div>
+            </div>
+            <textarea id="quickNotes" oninput="saveNotes()" placeholder="اكتب ملاحظاتك هنا..." style="width:100%; min-height:120px; border:1px solid var(--border); border-radius:12px; padding:12px; background:#fafaff; font-family:inherit;"></textarea>
+          </div>
+
         </section>
 
 
@@ -678,6 +705,14 @@
               onclick="openModal('taskModal')"
             >
               ＋ إضافة مهمة
+            </button>
+
+            <button
+              class="secondary-btn"
+              onclick="exportTasksPDF()"
+              style="margin-right: 10px;"
+            >
+              📄 تصدير المهام
             </button>
 
           </div>
@@ -886,6 +921,10 @@
                 </button>
 
               </div>
+
+              <button class="secondary-btn" style="margin-top:15px; width:100%;" onclick="toggleFullscreenTimer()">
+                ⛶ وضع التركيز الكامل
+              </button>
 
 
               <p class="timer-tip">
@@ -1600,6 +1639,24 @@
                 <small>أكمل أول جلسة</small>
               </div>
 
+              <div class="achievement" id="achievement5">
+                <span>🔥</span>
+                <strong>يوم مثمر</strong>
+                <small>4 جلسات في يوم</small>
+              </div>
+
+              <div class="achievement" id="achievement6">
+                <span>📚</span>
+                <strong>المراجع</strong>
+                <small>10 كروت</small>
+              </div>
+
+              <div class="achievement" id="achievement7">
+                <span>🏆</span>
+                <strong>المثابر</strong>
+                <small>7 جلسات تركيز</small>
+              </div>
+
             </div>
 
           </div>
@@ -1695,6 +1752,40 @@
         </section>
 
 
+        <!-- صفحة الجدول الأسبوعي -->
+        <section id="schedule" class="page">
+          <div class="page-intro">
+            <div>
+              <h2>الجدول الأسبوعي 📅</h2>
+              <p>حدد موادك ومهامك لكل يوم في الأسبوع.</p>
+            </div>
+          </div>
+          <div class="dashboard-card">
+            <div id="weeklySchedule" class="weekly-schedule"></div>
+            <button class="primary-btn" style="margin-top: 20px;" onclick="saveSchedule()">حفظ الجدول</button>
+          </div>
+        </section>
+
+
+        <!-- صفحة مولد الخطة -->
+        <section id="plan" class="page">
+          <div class="page-intro">
+            <div>
+              <h2>مولد خطة المذاكرة 📋</h2>
+              <p>أدخل موادك والامتحانات القادمة للحصول على خطة مقترحة.</p>
+            </div>
+          </div>
+          <div class="dashboard-card">
+            <div class="form-group">
+              <label>المواد والامتحانات (مثال: رياضيات - امتحان يوم الأحد)</label>
+              <textarea id="planInput" placeholder="اكتب كل مادة في سطر مع موعد الامتحان إن وجد..." style="min-height: 140px;"></textarea>
+            </div>
+            <button class="primary-btn" onclick="generateStudyPlan()">إنشاء الخطة</button>
+            <div id="planOutput" class="ai-output" style="display: none; margin-top: 20px;"></div>
+          </div>
+        </section>
+
+
         <!-- الإعدادات -->
         <section
           id="settings"
@@ -1754,6 +1845,39 @@
                 <span class="slider"></span>
 
               </label>
+
+            </div>
+
+
+            <div class="setting-row">
+
+              <div>
+
+                <span class="setting-icon">
+                  🎨
+                </span>
+
+                <div>
+
+                  <strong>
+                    لون التطبيق
+                  </strong>
+
+                  <p>
+                    اختر اللون الأساسي
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              <div style="display: flex; gap: 8px;">
+                <button class="theme-btn" style="background:#7c5cff;" onclick="setTheme('purple')" title="بنفسجي"></button>
+                <button class="theme-btn" style="background:#3b82f6;" onclick="setTheme('blue')" title="أزرق"></button>
+                <button class="theme-btn" style="background:#10b981;" onclick="setTheme('green')" title="أخضر"></button>
+                <button class="theme-btn" style="background:#f59e0b;" onclick="setTheme('orange')" title="برتقالي"></button>
+              </div>
 
             </div>
 
