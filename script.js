@@ -100,7 +100,8 @@ function showPage(pageId) {
     ai: ["المساعد الذكي 🤖", "لخّص دروسك وأنشئ أسئلة تلقائيًا."],
     schedule: ["الجدول الأسبوعي 📅", "خطط لمذاكرتك خلال الأسبوع."],
     plan: ["مولد خطة المذاكرة 📋", "أنشئ خطة توزيع للمواد والامتحانات."],
-    settings: ["الإعدادات ⚙️", "خصص تجربتك في Let Us Study."]
+    settings: ["الإعدادات ⚙️", "خصص تجربتك في Let Us Study."],
+    translator: ["مترجم اللغات 🌍", "ترجم النصوص بين العربية وخمس لغات أخرى."]
   };
 
   if (titles[pageId]) {
@@ -1295,4 +1296,153 @@ function updateAchievements() {
   document.getElementById("achievement5")?.classList.toggle("unlocked", todaySessions >= 4);
   document.getElementById("achievement6")?.classList.toggle("unlocked", flashcards.length >= 10);
   document.getElementById("achievement7")?.classList.toggle("unlocked", studyData.sessions >= 7);
+}
+
+
+// =========================================
+// مترجم اللغات (يتطلب اتصالًا بالإنترنت)
+// =========================================
+const translationLanguageNames = {
+  ar: "العربية",
+  en: "الإنجليزية",
+  fr: "الفرنسية",
+  de: "الألمانية",
+  es: "الإسبانية",
+  it: "الإيطالية"
+};
+
+function updateTranslationCharCount() {
+  const input = document.getElementById("translationInput");
+  const counter = document.getElementById("translationCharCount");
+  if (input && counter) counter.textContent = `${input.value.length} / 5000`;
+}
+
+function swapTranslationLanguages() {
+  const from = document.getElementById("translateFrom");
+  const to = document.getElementById("translateTo");
+  if (!from || !to) return;
+  const oldFrom = from.value;
+  from.value = to.value;
+  to.value = oldFrom;
+  const input = document.getElementById("translationInput");
+  const output = document.getElementById("translationOutput");
+  if (input && output && output.value.trim()) {
+    const oldInput = input.value;
+    input.value = output.value;
+    output.value = oldInput;
+    updateTranslationCharCount();
+  }
+}
+
+async function translateText() {
+  const input = document.getElementById("translationInput");
+  const output = document.getElementById("translationOutput");
+  const from = document.getElementById("translateFrom")?.value;
+  const to = document.getElementById("translateTo")?.value;
+  const button = document.getElementById("translateButton");
+  const status = document.getElementById("translationStatus");
+
+  if (!input || !output || !status || !button) return;
+  const textToTranslate = input.value.trim();
+
+  if (!textToTranslate) {
+    status.textContent = "اكتب النص الذي تريد ترجمته أولًا.";
+    status.className = "translator-status error";
+    input.focus();
+    return;
+  }
+  if (from === to) {
+    status.textContent = "اختر لغتين مختلفتين للترجمة.";
+    status.className = "translator-status error";
+    return;
+  }
+  if (textToTranslate.length > 5000) {
+    status.textContent = "النص طويل جدًا. الحد الأقصى 5000 حرف.";
+    status.className = "translator-status error";
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "⏳ جاري الترجمة...";
+  status.textContent = `جارٍ الترجمة من ${translationLanguageNames[from]} إلى ${translationLanguageNames[to]}...`;
+  status.className = "translator-status loading";
+  output.value = "";
+
+  try {
+    const langPair = `${from}|${to}`;
+    const endpoint = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(textToTranslate)}&langpair=${encodeURIComponent(langPair)}`;
+    const response = await fetch(endpoint, { method: "GET" });
+    if (!response.ok) throw new Error("تعذر الاتصال بخدمة الترجمة.");
+    const data = await response.json();
+
+    if (data.responseStatus !== 200 || !data.responseData?.translatedText) {
+      throw new Error(data.responseDetails || "لم تتمكن خدمة الترجمة من معالجة النص.");
+    }
+
+    output.value = decodeTranslationEntities(data.responseData.translatedText);
+    status.textContent = "تمت الترجمة بنجاح ✓";
+    status.className = "translator-status success";
+  } catch (error) {
+    status.textContent = "تعذرت الترجمة الآن. تأكد من الإنترنت وحاول مرة أخرى بعد قليل.";
+    status.className = "translator-status error";
+  } finally {
+    button.disabled = false;
+    button.textContent = "✨ ترجمة النص";
+  }
+}
+
+function decodeTranslationEntities(value) {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = value;
+  return textarea.value;
+}
+
+async function copyTranslation() {
+  const output = document.getElementById("translationOutput");
+  if (!output || !output.value.trim()) {
+    showNotification("لا توجد ترجمة لنسخها بعد.");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(output.value);
+    showNotification("تم نسخ الترجمة 📋");
+  } catch (error) {
+    output.focus();
+    output.select();
+    const copied = document.execCommand("copy");
+    showNotification(copied ? "تم نسخ الترجمة 📋" : "حدد النص وانسخه يدويًا.");
+  }
+}
+
+function clearTranslation() {
+  const input = document.getElementById("translationInput");
+  const output = document.getElementById("translationOutput");
+  const status = document.getElementById("translationStatus");
+  if (input) input.value = "";
+  if (output) output.value = "";
+  if (status) {
+    status.textContent = "";
+    status.className = "translator-status";
+  }
+  updateTranslationCharCount();
+}
+
+function useTranslationAsInput() {
+  const input = document.getElementById("translationInput");
+  const output = document.getElementById("translationOutput");
+  const from = document.getElementById("translateFrom");
+  const to = document.getElementById("translateTo");
+  if (!input || !output || !output.value.trim() || !from || !to) {
+    showNotification("ترجم نصًا أولًا لاستخدام النتيجة.");
+    return;
+  }
+  input.value = output.value;
+  output.value = "";
+  const oldFrom = from.value;
+  from.value = to.value;
+  to.value = oldFrom;
+  updateTranslationCharCount();
+  document.getElementById("translationStatus").textContent = "تم نقل الترجمة إلى مربع النص وتبديل اللغات.";
+  document.getElementById("translationStatus").className = "translator-status";
+  input.focus();
 }

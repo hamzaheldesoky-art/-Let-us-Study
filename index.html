@@ -297,6 +297,14 @@
 
         <button
           class="nav-item"
+          data-page="translator"
+        >
+          <span>🌍</span>
+          المترجم
+        </button>
+
+        <button
+          class="nav-item"
           data-page="settings"
         >
           <span>⚙️</span>
@@ -1782,6 +1790,77 @@
             </div>
             <button class="primary-btn" onclick="generateStudyPlan()">إنشاء الخطة</button>
             <div id="planOutput" class="ai-output" style="display: none; margin-top: 20px;"></div>
+          </div>
+        </section>
+
+
+        <!-- مترجم اللغات -->
+        <section id="translator" class="page">
+          <div class="page-intro">
+            <div>
+              <h2>🌍 مترجم اللغات</h2>
+              <p>ترجم بين العربية وخمس لغات عالمية بسهولة.</p>
+            </div>
+          </div>
+
+          <div class="dashboard-card translator-card">
+            <div class="translator-heading">
+              <div class="translator-icon">🌐</div>
+              <div>
+                <h3>Let Us Translate</h3>
+                <p>ترجمة النصوص والجمل في الاتجاهين</p>
+              </div>
+            </div>
+
+            <div class="translator-language-row">
+              <div class="form-group">
+                <label for="translateFrom">من اللغة</label>
+                <select id="translateFrom">
+                  <option value="ar">العربية</option>
+                  <option value="en">الإنجليزية</option>
+                  <option value="fr">الفرنسية</option>
+                  <option value="de">الألمانية</option>
+                  <option value="es">الإسبانية</option>
+                  <option value="it">الإيطالية</option>
+                </select>
+              </div>
+              <button class="translator-swap" type="button" onclick="swapTranslationLanguages()" title="تبديل اللغتين" aria-label="تبديل اللغتين">⇄</button>
+              <div class="form-group">
+                <label for="translateTo">إلى اللغة</label>
+                <select id="translateTo">
+                  <option value="en" selected>الإنجليزية</option>
+                  <option value="ar">العربية</option>
+                  <option value="fr">الفرنسية</option>
+                  <option value="de">الألمانية</option>
+                  <option value="es">الإسبانية</option>
+                  <option value="it">الإيطالية</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="translationInput">النص المراد ترجمته</label>
+              <textarea id="translationInput" rows="6" maxlength="5000" placeholder="اكتب أو الصق النص هنا..." oninput="updateTranslationCharCount()"></textarea>
+              <small class="translator-char-count" id="translationCharCount">0 / 5000</small>
+            </div>
+
+            <div class="translator-actions">
+              <button class="primary-btn" id="translateButton" type="button" onclick="translateText()">✨ ترجمة النص</button>
+              <button class="secondary-btn" type="button" onclick="clearTranslation()">مسح</button>
+            </div>
+
+            <div class="translator-status" id="translationStatus" role="status" aria-live="polite"></div>
+
+            <div class="form-group translator-result-group">
+              <label for="translationOutput">الترجمة</label>
+              <textarea id="translationOutput" rows="6" readonly placeholder="ستظهر الترجمة هنا..."></textarea>
+            </div>
+            <div class="translator-actions">
+              <button class="secondary-btn" type="button" onclick="copyTranslation()">📋 نسخ الترجمة</button>
+              <button class="secondary-btn" type="button" onclick="useTranslationAsInput()">↔ استخدام الترجمة كنص جديد</button>
+            </div>
+
+            <p class="translator-note">تحتاج الترجمة إلى اتصال بالإنترنت. يُرسل النص إلى خدمة ترجمة خارجية لمعالجته؛ لا تضع كلمات مرور أو معلومات خاصة. الخدمة المجانية قد تفرض حدودًا على الاستخدام.</p>
           </div>
         </section>
 
