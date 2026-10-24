@@ -935,6 +935,14 @@
               </button>
 
 
+              <div class="alarm-sound-box">
+                <label for="alarmSoundSelect">🔔 صوت المنبه عند انتهاء الوقت</label>
+                <div class="alarm-sound-row">
+                  <select id="alarmSoundSelect" onchange="setAlarmSound(this.value)"></select>
+                  <button class="secondary-btn" type="button" onclick="previewAlarmSound()">▶ تجربة</button>
+                </div>
+              </div>
+
               <p class="timer-tip">
                 💡 ابعد الموبايل عنك وابدأ بتركيز.
               </p>

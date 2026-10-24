@@ -1948,3 +1948,43 @@ body.theme-purple { --primary: #7c5cff; --primary-dark: #6344e8; --primary-light
   .translator-actions { display: grid; grid-template-columns: 1fr; }
   .translator-actions button { width: 100%; }
 }
+
+
+/* صوت المنبه */
+.alarm-sound-box {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #fafaff;
+  border: 1px solid var(--border);
+}
+
+.alarm-sound-box label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.alarm-sound-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.alarm-sound-row select {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 11px;
+  padding: 10px 12px;
+  font-size: 12px;
+  outline: none;
+}
+
+body.dark-mode .alarm-sound-box {
+  background: #292542;
+  border-color: #3a3557;
+}

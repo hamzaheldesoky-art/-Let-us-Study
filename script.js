@@ -601,6 +601,7 @@ function toggleTimer() {
     return;
   }
 
+  unlockAudio();
   isTimerRunning = true;
   document.getElementById("timerStartBtn").textContent = "⏸";
 
@@ -613,6 +614,8 @@ function toggleTimer() {
       clearInterval(timerInterval);
       isTimerRunning = false;
       document.getElementById("timerStartBtn").textContent = "▶";
+
+      playNotificationSound();
 
       if (currentTimerMode === "focus") {
         studyData.totalMinutes += 25;
@@ -1148,6 +1151,7 @@ const motivationalQuotes = [
 ];
 
 function initExtraFeatures() {
+  setupAlarmSoundSelector();
   renderWeeklySchedule();
   loadTheme();
   updateDailyQuote();
@@ -1226,11 +1230,146 @@ function updateDailyQuote() {
 }
 
 // مؤقت متقدم + صوت
+// =========================================
+// صوت المنبه عند انتهاء المؤقت (أصوات مولّدة داخل المتصفح)
+// =========================================
+const ALARM_SOUNDS = [
+  { id: "bell", name: "🔔 جرس كلاسيكي" },
+  { id: "chime", name: "🎵 نغمة هادئة" },
+  { id: "digital", name: "📟 بيب رقمي" },
+  { id: "siren", name: "🚨 صفارة إنذار" },
+  { id: "drops", name: "💧 قطرات مائية" },
+  { id: "none", name: "🔇 بدون صوت" }
+];
+
+let alarmSoundId = localStorage.getItem("zakkerAlarmSound") || "bell";
+let audioCtx = null;
+
+function getAudioContext() {
+  if (!audioCtx) {
+    const AudioCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtor) return null;
+    audioCtx = new AudioCtor();
+  }
+  return audioCtx;
+}
+
+// المتصفحات بتسمح بالصوت بعد أول ضغطة من المستخدم، فبنفعّله عند الضغط على ابدأ أو التجربة
+function unlockAudio() {
+  const ctx = getAudioContext();
+  if (ctx && ctx.state === "suspended") ctx.resume();
+}
+
+// نغمة واحدة بتبدأ عند وقت معين وتخفت تدريجيًا
+function scheduleTone(ctx, start, freq, duration, type, volume, endFreq) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  if (endFreq) {
+    osc.frequency.exponentialRampToValueAtTime(endFreq, start + duration);
+  }
+
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + duration + 0.05);
+}
+
+const ALARM_PATTERNS = {
+  bell: {
+    length: 1.6,
+    play(ctx, t) {
+      [0, 0.5].forEach(function (offset) {
+        scheduleTone(ctx, t + offset, 880, 1.2, "sine", 0.5);
+        scheduleTone(ctx, t + offset, 1760, 0.8, "sine", 0.15);
+      });
+    }
+  },
+  chime: {
+    length: 1.4,
+    play(ctx, t) {
+      [659.25, 783.99, 987.77, 1318.51].forEach(function (freq, i) {
+        scheduleTone(ctx, t + i * 0.22, freq, 0.5, "triangle", 0.35);
+      });
+    }
+  },
+  digital: {
+    length: 1.2,
+    play(ctx, t) {
+      for (let i = 0; i < 4; i++) {
+        scheduleTone(ctx, t + i * 0.25, 1000, 0.12, "square", 0.12);
+      }
+    }
+  },
+  siren: {
+    length: 1.5,
+    play(ctx, t) {
+      scheduleTone(ctx, t, 600, 1.4, "sawtooth", 0.12, 1300);
+    }
+  },
+  drops: {
+    length: 1.5,
+    play(ctx, t) {
+      [1400, 1100, 1500, 900].forEach(function (freq, i) {
+        scheduleTone(ctx, t + i * 0.35, freq, 0.3, "sine", 0.3, freq * 0.6);
+      });
+    }
+  }
+};
+
+// يشغّل المنبه 3 مرات عشان ما يفوتش المستخدم
 function playNotificationSound() {
-  try {
-    const audio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAAAA==");
-    audio.play().catch(() => {});
-  } catch (e) {}
+  if (alarmSoundId === "none") return;
+
+  const ctx = getAudioContext();
+  const pattern = ALARM_PATTERNS[alarmSoundId];
+  if (!ctx || !pattern) return;
+
+  const start = function () {
+    const base = ctx.currentTime + 0.05;
+    for (let repeat = 0; repeat < 3; repeat++) {
+      pattern.play(ctx, base + repeat * (pattern.length + 0.4));
+    }
+  };
+
+  if (ctx.state === "suspended") {
+    ctx.resume().then(start).catch(function () {});
+  } else {
+    start();
+  }
+}
+
+function setupAlarmSoundSelector() {
+  const select = document.getElementById("alarmSoundSelect");
+  if (!select) return;
+
+  select.innerHTML = ALARM_SOUNDS.map(function (sound) {
+    return `<option value="${sound.id}">${sound.name}</option>`;
+  }).join("");
+  select.value = alarmSoundId;
+}
+
+function setAlarmSound(id) {
+  alarmSoundId = id;
+  localStorage.setItem("zakkerAlarmSound", id);
+  unlockAudio();
+  playNotificationSound(); // تشغيل تجريبي للصوت المختار
+  showNotification("تم اختيار صوت المنبه 🔔");
+}
+
+function previewAlarmSound() {
+  unlockAudio();
+  if (alarmSoundId === "none") {
+    showNotification("الصوت مغلق حاليًا 🔇");
+    return;
+  }
+  playNotificationSound();
 }
 
 // وضع التركيز الكامل
